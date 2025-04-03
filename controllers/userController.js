@@ -1,21 +1,26 @@
 import User from "../models/user.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import dotenv from "dotenv";
+
+// Load environment variables from .env file
+dotenv.config();
+
 export function saveUser(req, res) {
+  // Only allow admin to create another admin
   if (req.body.role == "admin") {
     if (req.user == null) {
-      res.status(403).json({
-        message: "Please login as a admin before creating an admin",
+      return res.status(403).json({
+        message: "Please login as an admin before creating an admin",
       });
     }
     return;
   }
+
   if (req.user.role !== "admin") {
-    res.status(403).json({
+    return res.status(403).json({
       message: "You are not authorized to create a user",
     });
-
-    return;
   }
 
   const hashedPassword = bcrypt.hashSync(req.body.password, 10);
@@ -30,31 +35,28 @@ export function saveUser(req, res) {
   user
     .save()
     .then(() => {
-      res.json({
+      return res.json({
         message: "User saved successfully",
       });
     })
     .catch(() => {
-      res
-        .json({
-          message: "User not saved",
-        })
-        .status(500);
+      return res.status(500).json({
+        message: "User not saved",
+      });
     });
 }
 
 export function loginUser(req, res) {
-  const email = req.body.email;
-  const password = req.body.password;
+  const { email, password } = req.body;
 
-  User.findOne({
-    email: email,
-  }).then((user) => {
-    if (user == null) {
-      res.json({
-        message: "Invalid email",
-      });
-    } else {
+  User.findOne({ email: email })
+    .then((user) => {
+      if (user == null) {
+        return res.status(404).json({
+          message: "Invalid email",
+        });
+      }
+
       const isPasswordCorrect = bcrypt.compareSync(password, user.password);
       if (isPasswordCorrect) {
         const userData = {
@@ -67,17 +69,21 @@ export function loginUser(req, res) {
           isEmailVerified: user.isEmailVerified,
         };
 
-        const token = jwt.sign(userData, "random456");
+        const token = jwt.sign(userData, process.env.JWT_SECRET);
 
-        res.json({
+        return res.json({
           message: "Login successful",
           token: token,
         });
       } else {
-        res.status(403).json({
+        return res.status(403).json({
           message: "Invalid password",
         });
       }
-    }
-  });
+    })
+    .catch((err) => {
+      return res.status(500).json({
+        message: "Internal server error",
+      });
+    });
 }
