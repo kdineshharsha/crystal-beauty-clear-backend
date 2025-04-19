@@ -17,11 +17,11 @@ export function saveUser(req, res) {
     return;
   }
 
-  if (req.user.role !== "admin") {
-    return res.status(403).json({
-      message: "You are not authorized to create a user",
-    });
-  }
+  // if (req.user.role !== "admin") {
+  //   return res.status(403).json({
+  //     message: "You are not authorized to create a user",
+  //   });
+  // }
 
   const hashedPassword = bcrypt.hashSync(req.body.password, 10);
 
