@@ -39,6 +39,23 @@ export async function getProducts(req, res) {
   }
 }
 
+export async function getProductById(req, res) {
+  const productId = req.params.productId;
+
+  const product = await Product.findOne({ productId: productId });
+
+  if (product == null) {
+    res.status(404).json({
+      message: "Product not found",
+    });
+    return;
+  }
+  res.json({
+    message: "Product found successfully",
+    product: product,
+  });
+}
+
 export async function deleteProduct(req, res) {
   if (req.user == null) {
     res.status(403).json({
