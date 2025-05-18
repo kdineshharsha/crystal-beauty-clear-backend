@@ -92,7 +92,6 @@ export function loginUser(req, res) {
 
 export async function googleLogin(req, res) {
   const accessToken = req.body.accessToken;
-
   try {
     const response = await axios.get(
       "https://www.googleapis.com/oauth2/v3/userinfo",
@@ -102,7 +101,6 @@ export async function googleLogin(req, res) {
         },
       }
     );
-
     const user = await User.findOne({
       email: response.data.email,
     });
@@ -162,4 +160,16 @@ export async function googleLogin(req, res) {
       message: "Google login failed",
     });
   }
+}
+
+export function getCurrentUser(req, res) {
+  if (req.user == null) {
+    return res.status(403).json({
+      message: "Please login to access this resource",
+    });
+  }
+
+  return res.json({
+    user: req.user,
+  });
 }
