@@ -103,3 +103,27 @@ export async function updateProduct(req, res) {
       });
     });
 }
+
+export async function searchProducts(req, res) {
+  const searchTerm = req.params.id;
+
+  try {
+    const product = await Product.find({
+      $or: [
+        { productName: { $regex: searchTerm, $options: "i" } },
+        { description: { $regex: searchTerm, $options: "i" } },
+        { altNames: { $elemMatch: { $regex: searchTerm, $options: "i" } } },
+      ],
+    });
+    res.status(200).json({
+      products: product,
+    });
+    console.log(product);
+    console.log(searchTerm);
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({
+      message: "Products not found",
+    });
+  }
+}

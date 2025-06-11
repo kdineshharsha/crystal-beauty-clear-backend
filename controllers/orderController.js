@@ -98,3 +98,16 @@ export async function updateOrder(req, res) {
     });
   }
 }
+export async function getOrdersByUserEmail(req, res) {
+  try {
+    const query = { email: req.params.userEmail };
+    if (req.query.status) {
+      query.status = req.query.status;
+    }
+
+    const orders = await Order.find(query).sort({ date: -1 });
+    res.json(orders);
+  } catch (err) {
+    res.status(500).json({ message: "Error fetching orders" });
+  }
+}

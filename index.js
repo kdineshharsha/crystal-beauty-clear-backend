@@ -6,7 +6,9 @@ import userRouter from "./routes/userRouter.js";
 import productRouter from "./routes/productRouter.js";
 import verifyJWT from "./middleware/auth.js";
 import orderRouter from "./routes/orderRouter.js";
+import bannerRouter from "./routes/bannerRouter.js";
 import cors from "cors";
+import reviewRouter from "./routes/reviewRouter.js";
 
 // Load environment variables from .env file
 dotenv.config();
@@ -34,6 +36,8 @@ app.use(verifyJWT);
 app.use("/api/user", userRouter);
 app.use("/api/product", productRouter);
 app.use("/api/order", orderRouter);
+app.use("/api/promo", bannerRouter);
+app.use("/api/review", reviewRouter);
 
 // Start the server
 app.listen(port, () => console.log(`Example app listening on port ${port}!`));
