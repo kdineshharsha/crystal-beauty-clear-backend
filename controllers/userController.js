@@ -361,3 +361,27 @@ export async function getUserById(req, res) {
     res.status(500).json({ message: "Error fetching user" });
   }
 }
+
+export async function updateUser(req, res) {
+  try {
+    const { firstName, lastName, phone } = req.body;
+
+    if (!req.user || !req.user.email) {
+      return res.status(403).json({ message: "Unauthorized" });
+    }
+
+    const updatedUser = await User.findOneAndUpdate(
+      { email: req.user.email },
+      { firstName, lastName, phone }, // ✅ include phone here
+      { new: true }
+    ).select("-password");
+
+    res.json({
+      message: "User updated successfully",
+      user: updatedUser,
+    });
+  } catch (err) {
+    console.error("Update error:", err);
+    res.status(500).json({ message: "Error updating user" });
+  }
+}

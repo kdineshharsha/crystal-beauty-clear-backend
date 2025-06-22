@@ -29,16 +29,47 @@ export async function createProduct(req, res) {
 
 export async function getProducts(req, res) {
   try {
-    const products = await Product.find();
+    const category = req.query.category;
+    const filter = category ? { category } : {};
+
+    const products = await Product.aggregate([
+      { $match: filter },
+      {
+        $lookup: {
+          from: "reviews", // collection name in MongoDB
+          localField: "productId",
+          foreignField: "productId",
+          as: "reviews",
+        },
+      },
+      {
+        $addFields: {
+          averageRating: {
+            $cond: [
+              { $eq: [{ $size: "$reviews" }, 0] },
+              0,
+              {
+                $round: [{ $avg: "$reviews.rating" }, 2],
+              },
+            ],
+          },
+          totalReviews: { $size: "$reviews" },
+        },
+      },
+      {
+        $project: {
+          reviews: 0, // Don't send full reviews in the response
+        },
+      },
+      { $sort: { productId: 1 } },
+    ]);
+
     res.status(200).json(products);
   } catch (error) {
-    console.log(error);
-    res.status(500).json({
-      message: "Products not found",
-    });
+    console.error(error);
+    res.status(500).json({ message: "Products not found" });
   }
 }
-
 export async function getProductById(req, res) {
   const productId = req.params.productId;
 
@@ -54,6 +85,26 @@ export async function getProductById(req, res) {
     message: "Product found successfully",
     product: product,
   });
+}
+export async function getProductByCategory(req, res) {
+  const category = req.params.category;
+
+  try {
+    const products = await Product.find({ category: category });
+
+    if (products.length === 0) {
+      return res.status(404).json({
+        message: "No products found in this category",
+      });
+    }
+
+    res.json(products);
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({
+      message: "Error fetching category products",
+    });
+  }
 }
 
 export async function deleteProduct(req, res) {

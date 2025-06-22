@@ -36,6 +36,11 @@ const productSchema = new mongoose.Schema({
     type: Number,
     required: true,
   },
+  category: {
+    type: String,
+    required: true, // set to false if it's optional
+    enum: ["lips", "eye", "face", "nail", "skincare", "fragrance"], // example categories
+  },
 });
 
 const Product = mongoose.model("Product", productSchema);

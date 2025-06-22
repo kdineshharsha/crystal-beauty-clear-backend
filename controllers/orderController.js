@@ -1,5 +1,8 @@
+import Notification from "../models/notifications.js";
 import Order from "../models/order.js";
 import Product from "../models/product.js";
+import { sendOrderStatusEmail } from "../utilis/emailService.js";
+
 export async function createOrder(req, res) {
   if (!req.user) {
     return res.status(401).json({ message: "Unauthorized" });
@@ -72,30 +75,47 @@ export async function getOrder(req, res) {
 
 export async function updateOrder(req, res) {
   try {
-    if (req.user == null) {
-      res.status(401).json({
-        message: "Unauthorized",
-      });
-      return;
-    }
-
-    if (req.user.role != "admin") {
-      res.status(403).json({
-        message: "You are not authorized to update an order",
-      });
-      return;
+    if (!req.user || req.user.role !== "admin") {
+      return res.status(403).json({ message: "Unauthorized" });
     }
 
     const orderId = req.params.orderId;
-    const order = await Order.findOneAndUpdate({ orderId: orderId }, req.body);
+    const updatedOrder = await Order.findOneAndUpdate({ orderId }, req.body, {
+      new: true,
+    });
 
-    res.json({
-      message: "Order updated successfully",
+    if (!updatedOrder) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+
+    // Save notification
+    const notification = new Notification({
+      orderId: updatedOrder.orderId,
+      status: updatedOrder.status,
+      userEmail: updatedOrder.email,
+      message: `Order #${updatedOrder.orderId} is now ${updatedOrder.status}`,
     });
+
+    await notification.save();
+
+    // 💌 Send email
+    await sendOrderStatusEmail(
+      updatedOrder.email,
+      updatedOrder.orderId,
+      updatedOrder.status,
+      updatedOrder.billItems,
+      updatedOrder.total,
+      {
+        name: updatedOrder.name,
+        address: updatedOrder.address,
+        phoneNumber: updatedOrder.phoneNumber,
+      }
+    );
+
+    res.json({ message: "Order updated, email and notification sent" });
   } catch (err) {
-    res.status(500).json({
-      message: "Order not updated",
-    });
+    console.error("Error in updateOrder:", err);
+    res.status(500).json({ message: "Error updating order" });
   }
 }
 export async function getOrdersByUserEmail(req, res) {
@@ -109,5 +129,37 @@ export async function getOrdersByUserEmail(req, res) {
     res.json(orders);
   } catch (err) {
     res.status(500).json({ message: "Error fetching orders" });
+  }
+}
+
+export async function orderNotification(req, res) {
+  try {
+    const { userEmail } = req.params;
+    const notifications = await Notification.find({ userEmail: userEmail })
+      .sort({ updatedAt: -1 })
+      .limit(10);
+
+    res.json(
+      notifications.map((notification) => ({
+        orderId: notification.orderId,
+        status: notification.status,
+        updatedAt: notification.updatedAt,
+        message: notification.message,
+      }))
+    );
+  } catch (error) {
+    console.error("Error getting notifications:", error);
+    res.status(500).json({ message: "Failed to get notifications" });
+  }
+}
+
+export async function clearAllNotifications(req, res) {
+  try {
+    const { email } = req.params;
+    await Notification.deleteMany({ userEmail: email });
+    res.json({ message: "All notifications cleared" });
+  } catch (error) {
+    console.error("Error clearing notifications:", error);
+    res.status(500).json({ message: "Failed to clear notifications" });
   }
 }

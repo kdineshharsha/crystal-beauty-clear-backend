@@ -33,6 +33,11 @@ const userSchema = new mongoose.Schema({
     required: true,
     default: false,
   },
+  isEmailVerified: {
+    type: Boolean,
+    required: true,
+    default: false,
+  },
 });
 
 const User = mongoose.model("users", userSchema);
