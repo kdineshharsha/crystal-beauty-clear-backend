@@ -1,9 +1,9 @@
 import express from "express";
-import { createSale } from "../controllers/saleController.js";
+import { createSale, getActiveSales } from "../controllers/saleController.js";
 
 const saleRouter = express.Router();
 
-// POST /api/sale
-saleRouter.post("/", createSale);
+saleRouter.post("/", createSale); // existing create sale route
 
+saleRouter.get("/active", getActiveSales);
 export default saleRouter;
