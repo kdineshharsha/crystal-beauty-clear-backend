@@ -12,6 +12,7 @@ import reviewRouter from "./routes/reviewRouter.js";
 import saleRouter from "./routes/saleRouter.js";
 import wishlistRouter from "./routes/wishlistRouter.js";
 import adminRouter from "./routes/adminRouter.js";
+import popupAdrouter from "./routes/popupAdRouter.js";
 
 // Load environment variables from .env file
 dotenv.config();
@@ -44,6 +45,7 @@ app.use("/api/promo", bannerRouter);
 app.use("/api/review", reviewRouter);
 app.use("/api/sale", saleRouter);
 app.use("/api/wishlist", wishlistRouter);
+app.use("/api/popup", popupAdrouter);
 
 // Start the server
 app.listen(port, () => console.log(`Example app listening on port ${port}!`));
