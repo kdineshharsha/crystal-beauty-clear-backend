@@ -1,11 +1,14 @@
 import User from "../models/user.js";
+import Order from "../models/order.js";
+import Review from "../models/review.js";
+import Wishlist from "../models/wishlist.js";
+import Notification from "../models/notifications.js";
+import OTP from "../models/otp.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
 import axios from "axios";
 import nodemailer from "nodemailer";
-import { OTP } from "../models/otp.js";
-
 // Load environment variables from .env file
 dotenv.config();
 
@@ -383,5 +386,41 @@ export async function updateUser(req, res) {
   } catch (err) {
     console.error("Update error:", err);
     res.status(500).json({ message: "Error updating user" });
+  }
+}
+
+export async function deleteUser(req, res) {
+  try {
+    if (!req.user) {
+      return res.status(403).json({ message: "Unauthorized" });
+    }
+
+    const deleteOrders = await Order.deleteMany({
+      email: req.user.email,
+    });
+    const deleteWishlists = await Wishlist.deleteMany({
+      userEmail: req.user.email,
+    });
+    const deleteReviews = await Review.deleteMany({
+      userId: req.user.email,
+    });
+    const deleteNotifications = await Notification.deleteMany({
+      UserEmail: req.user.email,
+    });
+    const deleteOTP = await OTP.deleteMany({
+      email: req.user.email,
+    });
+    const deleteUser = await User.findOneAndDelete({
+      email: req.user.email,
+    });
+
+    if (deleteUser) {
+      res.json({ message: "User deleted successfully" });
+    } else {
+      res.status(404).json({ message: "User not found" });
+    }
+  } catch (err) {
+    console.error("Delete error:", err);
+    res.status(500).json({ message: "Error deleting user" });
   }
 }

@@ -11,6 +11,7 @@ import {
   getUserWithOrders,
   getUserById,
   updateUser,
+  deleteUser,
 } from "../controllers/userController.js";
 
 const userRouter = express.Router();
@@ -27,5 +28,6 @@ userRouter.get("/:email", getUserById);
 userRouter.post("/sendMail", sendOTP);
 userRouter.post("/changePW", changePassword);
 userRouter.put("/update", updateUser);
+userRouter.delete("/delete", deleteUser);
 
 export default userRouter;
