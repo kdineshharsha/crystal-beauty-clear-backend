@@ -18,6 +18,7 @@ export async function createOrder(req, res) {
       phoneNumber: body.phoneNumber,
       billItems: [],
       total: 0,
+      totalDiscount: 0,
     };
 
     const lastBill = await Order.findOne().sort({ date: -1 });
@@ -47,6 +48,8 @@ export async function createOrder(req, res) {
         price: product.price,
       };
       orderData.total += product.price * body.billItems[i].quantity;
+      const itemdiscount = product.labeledPrice * body.billItems[i].quantity;
+      orderData.totalDiscount += itemdiscount - orderData.total;
     }
 
     const order = new Order(orderData);
@@ -161,5 +164,54 @@ export async function clearAllNotifications(req, res) {
   } catch (error) {
     console.error("Error clearing notifications:", error);
     res.status(500).json({ message: "Failed to clear notifications" });
+  }
+}
+
+export async function cancelOrder(req, res) {
+  if (!req.user || !req.user.email) {
+    return res.status(403).json({ message: "Unauthorized" });
+  }
+
+  try {
+    const orderId = req.params.orderId;
+    console.log(orderId);
+    const cancelledOrder = await Order.findOneAndUpdate(
+      { orderId, email: req.user.email },
+      { status: "Cancelled" }, // Forcefully cancel
+      { new: true }
+    );
+    console.log(cancelledOrder);
+    if (!cancelledOrder) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+
+    // Save notification
+    const notification = new Notification({
+      orderId: cancelledOrder.orderId,
+      status: cancelledOrder.status,
+      userEmail: cancelledOrder.email,
+      message: `Order #${cancelledOrder.orderId} is now ${cancelledOrder.status}`,
+    });
+
+    await notification.save();
+
+    // 💌 Send email
+    await sendOrderStatusEmail(
+      cancelledOrder.email,
+      cancelledOrder.orderId,
+      cancelledOrder.status,
+      cancelledOrder.billItems,
+      cancelledOrder.total,
+      {
+        name: cancelledOrder.name,
+        address: cancelledOrder.address,
+        phoneNumber: cancelledOrder.phoneNumber,
+      }
+    );
+
+    res.json({ message: "Order cancelled, email and notification sent" });
+  } catch (err) {
+    console.error("Error in cancelOrder:", err);
+    res.status(500).json({ message: "Error cancelling order" });
   }
 }

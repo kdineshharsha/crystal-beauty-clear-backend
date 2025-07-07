@@ -49,6 +49,11 @@ const orderSchema = new mongoose.Schema({
     type: Number,
     required: true,
   },
+  totalDiscount: {
+    type: Number,
+    required: true,
+    default: 0,
+  },
 });
 
 const Order = mongoose.model("Order", orderSchema);
