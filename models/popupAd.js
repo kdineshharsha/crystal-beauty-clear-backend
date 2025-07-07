@@ -8,6 +8,9 @@ const promotionSchema = new mongoose.Schema(
       required: true,
     },
     description: { type: String },
+    startDate: { type: Date, default: Date.now },
+    endDate: { type: Date },
+    link: { type: String, default: "" },
     showAsPopup: { type: Boolean, default: false }, // ✅ Show as popup?
     isActive: { type: Boolean, default: true },
   },
