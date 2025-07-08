@@ -46,6 +46,7 @@ export function saveUser(req, res) {
     email: req.body.email,
     firstName: req.body.firstName,
     lastName: req.body.lastName,
+    phone: req.body.phone,
     password: hashedPassword,
   });
 
@@ -193,17 +194,6 @@ export async function googleLogin(req, res) {
   }
 }
 
-export function getCurrentUser(req, res) {
-  if (req.user == null) {
-    return res.status(403).json({
-      message: "Please login to access this resource",
-    });
-  }
-
-  return res.json({
-    user: req.user,
-  });
-}
 export function sendOTP(req, res) {
   const email = req.body.email;
   const otp = Math.floor(10000 + Math.random() * 90000);
@@ -389,6 +379,28 @@ export async function updateUser(req, res) {
   }
 }
 
+export async function getCurrentUser(req, res) {
+  if (!req.user) {
+    return res.status(403).json({
+      message: "Please login to access this resource",
+    });
+  }
+
+  try {
+    const freshUser = await User.findOne({ email: req.user.email }).select(
+      "-password" // exclude sensitive fields
+    );
+
+    if (!freshUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    return res.json({ user: freshUser });
+  } catch (err) {
+    console.error("Error fetching current user:", err);
+    return res.status(500).json({ message: "Server error" });
+  }
+}
 export async function deleteUser(req, res) {
   try {
     if (!req.user) {

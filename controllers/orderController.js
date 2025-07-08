@@ -174,13 +174,11 @@ export async function cancelOrder(req, res) {
 
   try {
     const orderId = req.params.orderId;
-    console.log(orderId);
     const cancelledOrder = await Order.findOneAndUpdate(
       { orderId, email: req.user.email },
       { status: "Cancelled" }, // Forcefully cancel
       { new: true }
     );
-    console.log(cancelledOrder);
     if (!cancelledOrder) {
       return res.status(404).json({ message: "Order not found" });
     }
