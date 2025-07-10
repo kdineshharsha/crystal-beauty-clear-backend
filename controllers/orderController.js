@@ -1,6 +1,7 @@
 import Notification from "../models/notifications.js";
 import Order from "../models/order.js";
 import Product from "../models/product.js";
+import User from "../models/user.js";
 import { sendOrderStatusEmail } from "../utilis/emailService.js";
 
 export async function createOrder(req, res) {
@@ -54,9 +55,41 @@ export async function createOrder(req, res) {
 
     const order = new Order(orderData);
     await order.save();
-    console.log(order);
+    // console.log(order);
     console.log(orderData);
 
+    const user = await User.findOne({ email: req.user.email });
+
+    if (user && !user.savedAddresses.includes(orderData.address)) {
+      if (user.savedAddresses) {
+        user.savedAddresses.push({
+          fullName: orderData.name,
+          address: orderData.address,
+          phone: orderData.phoneNumber,
+        });
+        await user.save();
+      }
+    }
+
+    const notification = new Notification({
+      orderId: orderData.orderId,
+      status: "Pending",
+      userEmail: orderData.email,
+      message: `Order #${orderData.orderId} is now Pending`,
+    });
+    await notification.save();
+    await sendOrderStatusEmail(
+      orderData.email,
+      orderData.orderId,
+      "Pending",
+      orderData.billItems,
+      orderData.total,
+      {
+        name: orderData.name,
+        address: orderData.address,
+        phoneNumber: orderData.phoneNumber,
+      }
+    );
     res.json({ message: "Order saved successfully" });
   } catch (error) {
     console.error(error);

@@ -6,8 +6,8 @@ const transporter = nodemailer.createTransport({
   port: 587,
   secure: false,
   auth: {
-    user: "dineshharsha182@gmail.com",
-    pass: "ybsfbcqrzujbmqvu",
+    user: process.env.EMAIL,
+    pass: process.env.EMAIL_PASSWORD,
   },
 });
 
@@ -33,7 +33,7 @@ export const sendOrderStatusEmail = async (
             Qty: ${item.quantity}
           </td>
           <td style="padding: 10px; vertical-align: middle; text-align: right;">
-            $${(item.price * item.quantity).toFixed(2)}
+            Rs.${(item.price * item.quantity).toFixed(2)}
           </td>
         </tr>
       `
@@ -75,7 +75,7 @@ export const sendOrderStatusEmail = async (
               ${productRows}
               <tr>
                 <td colspan="2" style="padding-top: 20px; font-weight: bold; text-align: right;">Grand Total:</td>
-                <td style="padding-top: 20px; font-weight: bold; text-align: right;">$${total.toFixed(
+                <td style="padding-top: 20px; font-weight: bold; text-align: right;">Rs.${total.toFixed(
                   2
                 )}</td>
               </tr>

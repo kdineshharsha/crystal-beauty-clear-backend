@@ -1,5 +1,27 @@
 import mongoose from "mongoose";
 
+const addressSchema = new mongoose.Schema(
+  {
+    fullName: {
+      type: String,
+      required: true,
+    },
+    address: {
+      type: String,
+      required: true,
+    },
+    phone: {
+      type: String,
+      required: true,
+    },
+    isDefault: {
+      type: Boolean,
+      default: false,
+    },
+  },
+  { _id: false }
+);
+
 const userSchema = new mongoose.Schema({
   email: {
     type: String,
@@ -27,6 +49,10 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: true,
     default: "Not given",
+  },
+  savedAddresses: {
+    type: [addressSchema],
+    default: [],
   },
   isDisabled: {
     type: Boolean,

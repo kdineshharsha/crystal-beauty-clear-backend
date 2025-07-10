@@ -199,9 +199,48 @@ export function sendOTP(req, res) {
   const otp = Math.floor(10000 + Math.random() * 90000);
 
   const message = {
+    from: `"Crystal Beauty Clear" <${process.env.EMAIL}>`,
     to: email,
-    subject: "OTP for password reset",
-    text: `Your OTP for password reset is ${otp}`,
+    subject: "🔐 Reset Your Password - OTP Inside!",
+    html: `
+    <div style="max-width: 600px; margin: auto; font-family: 'Segoe UI', sans-serif; border: 1px solid #eee; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
+      <div style="background-color: #1a202c; color: white; padding: 20px; text-align: center;">
+        <h1 style="margin: 0;">Crystal Beauty</h1>
+        <p style="margin: 0; font-size: 16px;">Secure Password Reset</p>
+      </div>
+
+      <div style="padding: 30px;">
+        <p style="font-size: 18px; color: #333;">Hey beautiful 👋,</p>
+        <p style="font-size: 16px; color: #444;">
+          You (or someone else) requested to reset your password. Use the OTP below to verify your identity:
+        </p>
+
+        <div style="margin: 30px auto; text-align: center;">
+          <span style="display: inline-block; background: #edf2f7; color: #2d3748; font-size: 32px; font-weight: bold; letter-spacing: 4px; padding: 15px 30px; border-radius: 8px; border: 2px dashed #4A5568;">
+            ${otp}
+          </span>
+        </div>
+
+        <p style="font-size: 16px; color: #555;">
+          This OTP is valid for <strong>5 minutes</strong>. Please don't share it with anyone.
+        </p>
+
+        <p style="font-size: 14px; color: #888;">
+          If you didn’t request a password reset, please ignore this email or contact support.
+        </p>
+
+        <div style="margin-top: 40px; text-align: center;">
+          <a href="https://yourfrontenddomain.com/reset-password" style="background-color: #1a202c; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: bold;">
+            Reset Password Now
+          </a>
+        </div>
+      </div>
+
+      <div style="background-color: #f9fafb; padding: 20px; text-align: center; font-size: 12px; color: #aaa;">
+        © ${new Date().getFullYear()} Crystal Beauty. All rights reserved.
+      </div>
+    </div>
+  `,
   };
 
   const newOTP = new OTP({
@@ -236,6 +275,47 @@ export async function changePassword(req, res) {
   const email = req.body.email;
   const password = req.body.password;
   const otp = req.body.otp;
+  const message = {
+    from: `"Crystal Beauty Clear" <${process.env.EMAIL}>`,
+    to: email,
+    subject: "🔒 Your Password Has Been Changed",
+    html: `
+    <div style="max-width: 600px; margin: auto; font-family: 'Segoe UI', sans-serif; border: 1px solid #eee; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.06);">
+      
+      <div style="background-color: #1a202c; color: white; padding: 24px; text-align: center;">
+        <h1 style="margin: 0;">Crystal Beauty</h1>
+        <p style="margin: 0; font-size: 16px;">Security Notification</p>
+      </div>
+
+      <div style="padding: 30px;">
+        <p style="font-size: 18px; color: #2d3748;">Hi there 👋,</p>
+
+        <p style="font-size: 16px; color: #4a5568;">
+          This is a confirmation that your password was successfully changed on your <strong>Crystal Beauty</strong> account.
+        </p>
+
+        <div style="margin: 20px 0; background-color: #f0f4f8; padding: 20px; border-radius: 8px; color: #2d3748; font-size: 15px;">
+          ✅ <strong>Password Updated:</strong> ${new Date().toLocaleString()}
+        </div>
+
+        <p style="font-size: 15px; color: #4a5568;">
+          If this wasn’t you, please reset your password immediately and contact our support team.
+        </p>
+
+        <div style="margin-top: 30px; text-align: center;">
+          <a href="https://yourfrontenddomain.com/contact-support" style="background-color: #1a202c; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: bold;">
+            Contact Support
+          </a>
+        </div>
+      </div>
+
+      <div style="background-color: #f9fafb; padding: 20px; text-align: center; font-size: 12px; color: #aaa;">
+        If you have questions, reply to this email or visit our <a href="https://celadon-twilight-9bf0e7.netlify.app/contact" style="color: #3182ce;">Help Center</a>.<br/>
+        © ${new Date().getFullYear()} Crystal Beauty. All rights reserved.
+      </div>
+    </div>
+  `,
+  };
   try {
     //get latest otp from db
     const lastOTPData = await OTP.findOne({
@@ -269,6 +349,17 @@ export async function changePassword(req, res) {
     });
     res.json({
       message: "Password changed successfully",
+    });
+    transport.sendMail(message, (error, info) => {
+      if (error) {
+        return res.status(500).json({
+          message: "Error sending confirmation email",
+        });
+      } else {
+        return res.json({
+          message: "Password changed successfully",
+        });
+      }
     });
   } catch (e) {
     res.status(500).json({
@@ -357,17 +448,39 @@ export async function getUserById(req, res) {
 
 export async function updateUser(req, res) {
   try {
-    const { firstName, lastName, phone } = req.body;
+    const { firstName, lastName, phone, defaultAddressIndex } = req.body;
 
     if (!req.user || !req.user.email) {
       return res.status(403).json({ message: "Unauthorized" });
     }
 
-    const updatedUser = await User.findOneAndUpdate(
-      { email: req.user.email },
-      { firstName, lastName, phone }, // ✅ include phone here
-      { new: true }
-    ).select("-password");
+    const user = await User.findOne({ email: req.user.email });
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // ✅ Update basic user info
+    if (firstName) user.firstName = firstName;
+    if (lastName) user.lastName = lastName;
+    if (phone) user.phone = phone;
+
+    // ✅ Handle default address update
+    if (
+      typeof defaultAddressIndex === "number" &&
+      user.savedAddresses &&
+      user.savedAddresses.length > defaultAddressIndex
+    ) {
+      // Clear all previous defaults
+      user.savedAddresses.forEach((addr, i) => {
+        addr.isDefault = i === defaultAddressIndex;
+      });
+    }
+
+    await user.save();
+
+    const updatedUser = user.toObject();
+    delete updatedUser.password;
 
     res.json({
       message: "User updated successfully",
