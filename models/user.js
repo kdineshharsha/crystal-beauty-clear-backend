@@ -1,26 +1,23 @@
 import mongoose from "mongoose";
 
-const addressSchema = new mongoose.Schema(
-  {
-    fullName: {
-      type: String,
-      required: true,
-    },
-    address: {
-      type: String,
-      required: true,
-    },
-    phone: {
-      type: String,
-      required: true,
-    },
-    isDefault: {
-      type: Boolean,
-      default: false,
-    },
+const addressSchema = new mongoose.Schema({
+  fullName: {
+    type: String,
+    required: true,
   },
-  { _id: false }
-);
+  address: {
+    type: String,
+    required: true,
+  },
+  phone: {
+    type: String,
+    required: true,
+  },
+  isDefault: {
+    type: Boolean,
+    default: false,
+  },
+});
 
 const userSchema = new mongoose.Schema({
   email: {

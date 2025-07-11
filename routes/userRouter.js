@@ -12,6 +12,9 @@ import {
   getUserById,
   updateUser,
   deleteUser,
+  updateAddress,
+  addAddress,
+  deleteAddress,
 } from "../controllers/userController.js";
 
 const userRouter = express.Router();
@@ -28,6 +31,9 @@ userRouter.post("/sendMail", sendOTP);
 userRouter.post("/changePW", changePassword);
 userRouter.put("/update", updateUser);
 userRouter.delete("/delete", deleteUser);
+userRouter.post("/add-address", addAddress);
 userRouter.patch("/:id/disable", setUserStatus);
+userRouter.put("/address/:addressId", updateAddress);
+userRouter.delete("/address/:addressId", deleteAddress);
 
 export default userRouter;

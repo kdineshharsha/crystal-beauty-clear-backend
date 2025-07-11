@@ -514,6 +514,7 @@ export async function getCurrentUser(req, res) {
     return res.status(500).json({ message: "Server error" });
   }
 }
+
 export async function deleteUser(req, res) {
   try {
     if (!req.user) {
@@ -547,5 +548,69 @@ export async function deleteUser(req, res) {
   } catch (err) {
     console.error("Delete error:", err);
     res.status(500).json({ message: "Error deleting user" });
+  }
+}
+
+// In your controller
+export async function updateAddress(req, res) {
+  const { addressId } = req.params;
+  const { fullName, address, phone } = req.body;
+
+  try {
+    const user = await User.findOne({ email: req.user.email });
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    const addressToUpdate = user.savedAddresses.id(addressId);
+    if (!addressToUpdate)
+      return res.status(404).json({ message: "Address not found" });
+
+    addressToUpdate.fullName = fullName;
+    addressToUpdate.address = address;
+    addressToUpdate.phone = phone;
+
+    await user.save();
+
+    return res.json({ message: "Address updated successfully", user });
+  } catch (err) {
+    console.error("Update address error:", err);
+    res.status(500).json({ message: "Failed to update address" });
+  }
+}
+
+// POST /api/user/add-address
+export async function addAddress(req, res) {
+  const { fullName, phone, address } = req.body;
+
+  try {
+    const user = await User.findOne({ email: req.user.email });
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    user.savedAddresses.push({ fullName, phone, address });
+    await user.save();
+
+    return res.json({ message: "Address added successfully", user });
+  } catch (error) {
+    console.error("Add address error:", error);
+    res.status(500).json({ message: "Failed to add address" });
+  }
+}
+
+// DELETE /api/user/address/:addressId
+export async function deleteAddress(req, res) {
+  const { addressId } = req.params;
+
+  try {
+    const user = await User.findOne({ email: req.user.email });
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    user.savedAddresses = user.savedAddresses.filter(
+      (addr) => addr._id.toString() !== addressId
+    );
+    await user.save();
+
+    return res.json({ message: "Address deleted", user });
+  } catch (err) {
+    console.error("Delete address error:", err);
+    res.status(500).json({ message: "Failed to delete address" });
   }
 }
