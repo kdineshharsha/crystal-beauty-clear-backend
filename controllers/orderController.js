@@ -23,54 +23,56 @@ export async function createOrder(req, res) {
     };
 
     const lastBill = await Order.findOne().sort({ date: -1 });
-
-    if (!lastBill) {
-      orderData.orderId = "ORD0001";
-    } else {
-      const lastOrderNumber = parseInt(lastBill.orderId.replace("ORD", ""), 10);
-      const newOrderNumberStr = (lastOrderNumber + 1)
-        .toString()
-        .padStart(4, "0");
-      orderData.orderId = "ORD" + newOrderNumberStr;
-    }
+    orderData.orderId = lastBill
+      ? "ORD" +
+        (parseInt(lastBill.orderId.replace("ORD", "")) + 1)
+          .toString()
+          .padStart(4, "0")
+      : "ORD0001";
 
     for (let i = 0; i < body.billItems.length; i++) {
-      const product = await Product.findOne({
-        productId: body.billItems[i].productId,
-      });
+      const item = body.billItems[i];
+      const product = await Product.findOne({ productId: item.productId });
+
       if (!product) {
         return res.status(404).json({ message: "Product not found" });
       }
+
+      // 💥 Update product stock and totalSold
+      product.stock -= item.quantity;
+      product.totalSold = (product.totalSold || 0) + item.quantity;
+      await product.save();
+
+      // 🧾 Build bill item
       orderData.billItems[i] = {
         productId: product.productId,
         productName: product.name,
         image: product.image[0],
-        quantity: body.billItems[i].quantity,
+        quantity: item.quantity,
         price: product.price,
       };
-      orderData.total += product.price * body.billItems[i].quantity;
-      const itemdiscount = product.labeledPrice * body.billItems[i].quantity;
-      orderData.totalDiscount += itemdiscount - orderData.total;
+
+      orderData.total += product.price * item.quantity;
+
+      const itemDiscount = product.labeledPrice * item.quantity;
+      orderData.totalDiscount += itemDiscount - product.price * item.quantity;
     }
 
     const order = new Order(orderData);
     await order.save();
-    // console.log(order);
-    console.log(orderData);
 
+    // 💾 Save address if it's new
     const user = await User.findOne({ email: req.user.email });
-
     if (user && !user.savedAddresses.includes(orderData.address)) {
-      if (user.savedAddresses) {
-        user.savedAddresses.push({
-          fullName: orderData.name,
-          address: orderData.address,
-          phone: orderData.phoneNumber,
-        });
-        await user.save();
-      }
+      user.savedAddresses.push({
+        fullName: orderData.name,
+        address: orderData.address,
+        phone: orderData.phoneNumber,
+      });
+      await user.save();
     }
 
+    // 🔔 Save notification
     const notification = new Notification({
       orderId: orderData.orderId,
       status: "Pending",
@@ -78,6 +80,8 @@ export async function createOrder(req, res) {
       message: `Order #${orderData.orderId} is now Pending`,
     });
     await notification.save();
+
+    // 📧 Send status email
     await sendOrderStatusEmail(
       orderData.email,
       orderData.orderId,
@@ -90,9 +94,10 @@ export async function createOrder(req, res) {
         phoneNumber: orderData.phoneNumber,
       }
     );
+
     res.json({ message: "Order saved successfully" });
   } catch (error) {
-    console.error(error);
+    console.error("Order error:", error);
     res.status(500).json({ message: "Order not saved" });
   }
 }

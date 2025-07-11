@@ -178,3 +178,14 @@ export async function searchProducts(req, res) {
     });
   }
 }
+
+export async function getTopSellingProducts(req, res) {
+  try {
+    const products = await Product.find()
+      .sort({ totalSold: -1 }) // 👈 sort by top selling
+      .limit(5); // 👈 limit to top 5
+    res.json(products);
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching top-selling products" });
+  }
+}
