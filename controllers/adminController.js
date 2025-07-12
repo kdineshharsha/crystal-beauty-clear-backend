@@ -33,6 +33,20 @@ export async function getAdminSummary(req, res) {
       .skip(skip)
       .limit(Number(limit));
 
+    // ✅ Group revenue per day (for revenue chart)
+    const revenuePerDay = await Order.aggregate([
+      { $match: match },
+      {
+        $group: {
+          _id: {
+            $dateToString: { format: "%Y-%m-%d", date: "$date" },
+          },
+          total: { $sum: "$total" },
+        },
+      },
+      { $sort: { _id: 1 } },
+    ]);
+
     // User Growth Chart
     const usersPerPeriod = await User.aggregate([
       {
@@ -77,6 +91,7 @@ export async function getAdminSummary(req, res) {
       usersPerPeriod,
       topProducts,
       lowStock,
+      revenuePerDay,
     });
   } catch (err) {
     console.error("Dashboard error:", err);
